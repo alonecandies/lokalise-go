@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v52/github"
 	// "github.com/lokalise/go-lokalise-api/v3"
@@ -35,22 +36,17 @@ func calculateGitSHA1(contents []byte) []byte {
 }
 
 func getContents(ctx context.Context, path string) {
-	fileContent, directoryContent, resp, err := client.Repositories.GetContents(ctx, owner, repo, path, nil)
+	_, directoryContent, _, err := client.Repositories.GetContents(ctx, owner, repo, path, nil)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	fmt.Printf("%#v\n", fileContent)
-	fmt.Printf("%#v\n", directoryContent)
-	fmt.Printf("%#v\n", resp)
 
 	for _, c := range directoryContent {
-		fmt.Println(*c.Type, *c.Path, *c.Size, *c.SHA)
+		local := *c.Path
 
-		local := filepath.Join(basePath, *c.Path)
-		fmt.Println("local:", local)
-
-		if *c.Name == "locale" {
+		if strings.Contains(*c.Path, "locale") {
+			fmt.Println("locale:", *c.Path)
 			switch *c.Type {
 			case "file":
 				_, err := os.Stat(local)
@@ -66,10 +62,9 @@ func getContents(ctx context.Context, path string) {
 				}
 				downloadContents(ctx, c, local)
 			case "dir":
-				getContents(ctx, filepath.Join(path, *c.Path))
+				getContents(ctx, *c.Path)
 			}
 		}
-
 	}
 }
 
